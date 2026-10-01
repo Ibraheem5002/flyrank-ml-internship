@@ -1,1 +1,67 @@
-PASTE-YOUR-DEPLOYED-PAPER-URL-HERE
+TITLE: Predicting Search Content Decay for Targeted Editorial Refreshes
+
+ABSTRACT
+SEO and editorial teams struggle to prioritize content updates because traffic drops are often noticed too late. This paper investigates whether historical search performance signals can predict impending content decay before total traffic loss occurs. Using 90-day search impression data and content metadata, we trained a Random Forest classifier grouped by client to isolate predictions from domain-specific memorization. The resulting model achieves 0.705 accuracy and 0.807 ROC-AUC, outperforming a standard heuristic baseline (0.456 accuracy) on the exact same grouped split. These findings power a decision-support queue that prioritizes editorial refreshes based on predicted risk and traffic volume, optimizing content maintenance budgets.
+
+================================================================================
+1. INTRODUCTION & PROBLEM STATEMENT
+================================================================================
+Search engine optimization (SEO) teams face a constant challenge: identifying which published content is decaying in performance before significant search traffic is lost. Current workflows rely heavily on reactive monitoring—flagging articles only after traffic has dropped significantly. This paper explores whether historical search intelligence signals (impressions, content age, and click-through rates) can directionally predict impending decay to support proactive editorial maintenance.
+
+================================================================================
+2. DATA
+================================================================================
+- Dataset: Anonymized production search performance dataset (FlyRank ML Internship dataset).
+- Date Windows: Rolling 90-day performance windows, evaluating metrics such as impressions_90d, average position, and CTR.
+- Exclusions: Content younger than 30 days was excluded due to high indexation volatility during initial publication stages.
+- Privacy & Safety: All client names, private URLs, and explicit search query strings have been completely anonymized and scrubbed.
+
+================================================================================
+3. METHODOLOGY
+================================================================================
+- Assumptions: Content traffic loss follows measurable historical decay patterns prior to severe drops.
+- Label Definition: `is_declining_label` (binary indicator derived from trend direction, where 1 indicates sustained downward momentum).
+- Feature Set: `impressions_90d`, `content_age_days`, `days_since_last_update`, `avg_position`, and `ctr`.
+- Leakage Checks: Removed short-term 30-day window features after leakage audits revealed they acted as direct proxies for the target label.
+- Baseline: Rule-based score threshold (baseline_score >= 50) evaluated on the exact same test split.
+- Validation Design: GroupShuffleSplit (80/20 train/test split) grouped strictly by `client_id` to test generalizability on unseen domain structures.
+
+================================================================================
+4. RESULTS
+================================================================================
+Evaluated on the exact same grouped test split (unseen clients):
+
+Metric       | Baseline (Heuristic) | Random Forest Model | Delta
+------------ | -------------------- | ------------------- | ------
+Accuracy     | 0.456                | 0.705               | +0.249
+Precision    | 0.442                | 0.696               | +0.254
+Recall       | 0.247                | 0.749               | +0.502
+ROC-AUC      | 0.482                | 0.807               | +0.325
+
+Feature importances reveal that historical impression volume (`impressions_90d`) and content age (`content_age_days`) are the strongest directional signals driving predictions.
+
+================================================================================
+5. LIMITATIONS & HONEST FRAMING
+================================================================================
+- Directional, Not Causal: Model scores indicate statistical association with decay, not direct causation.
+- External Volatility: Cannot predict sudden search engine core algorithm updates or shifting macroeconomic intent.
+- Historical Reliance: Cannot evaluate brand-new, unindexed URLs without historical impression data.
+
+================================================================================
+6. RANKED RECOMMENDATIONS (CONTENT ACTION PLAYBOOK)
+================================================================================
+- PRIORITY_EDITORIAL_REFRESH (Reason: STALE_HIGH_VOLUME): High impression pages showing decay. Requires manual rewriting and research updates.
+- METADATA_OPTIMIZATION (Reason: LOW_CTR_HIGH_IMP): High impression pages with low CTR. Requires title tag and meta description optimization.
+- CONTENT_RESTRUCTURE (Reason: POSITION_SLIP): Pages dropping past page 1 ranking. Requires header updates and search intent realignment.
+- MONITOR_NO_ACTION (Reason: STABLE_PERFORMANCE): Stable or recently updated pages requiring no immediate budget.
+
+================================================================================
+7. REPRODUCIBILITY
+================================================================================
+- Code Repository & Notebooks: Executable Jupyter notebooks (`w05_model.ipynb`, `w06_validation_audit.ipynb`, `w07_action_playbook.ipynb`, `capstone.ipynb`) are committed under `work/notebooks/`.
+- Data Artifacts: Exported action queues and metric JSON files are located under `work/outputs/` and `work/figures/`.
+
+================================================================================
+8. ACKNOWLEDGMENTS & DATA CREDIT
+================================================================================
+Built on the FlyRank ML Internship dataset (https://flyrank.ai).
